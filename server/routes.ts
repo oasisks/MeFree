@@ -253,10 +253,10 @@ class Routes {
   @Router.post("censoredWordList")
   async createWordList(title: String, scope: ObjectId) {}
 
-  @Router.patch("censoredWordList/add/:word") {}
+  @Router.patch("censoredWordList/add/:word")
   async addWord(wordList: ObjectId, word: string) {}
 
-  @Router.patch("censoredWordList/delete/:word") 
+  @Router.patch("censoredWordList/delete/:word")
   async deleteWord(wordList: ObjectId, word: string) {}
 }
 
