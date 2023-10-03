@@ -1,6 +1,6 @@
 import { ObjectId } from "mongodb";
 import DocCollection, { BaseDoc } from "../framework/doc";
-import { BadValuesError } from "./errors";
+import { BadValuesError, NotFoundError } from "./errors";
 
 export interface PointsDoc extends BaseDoc {
   user: ObjectId;
@@ -23,37 +23,92 @@ export default class PointsConcept {
    * @param receiver the person receiving the points
    * @param amount the amount the sender wants to send
    */
-  async sendPoints(sender: ObjectId, receiver: ObjectId, amount: number) {}
+  async sendPoints(sender: ObjectId, receiver: ObjectId, amount: number) {
+    // we need to first sub the points the sender is sending
+    await this.subPoints(sender, amount);
+    // we then add the points to the receiver
+    await this.addPoints(receiver, amount);
+  }
 
   /**
    * Updates the amount of points a user has by subtracting points
    * @param user The user we want to subtract points from
    * @param amount the amount we are subtracting cannot be more than the amount available
    */
-  async subPoints(user: ObjectId, amount: number) {}
+  async subPoints(user: ObjectId, amount: number) {
+    await this.userExist(user);
+    const point = await this.points.readOne({ user });
+    if (point) {
+      if (amount > point.point) {
+        throw new BadValuesError(`User: ${point.point}; Amount to be Subtracted: ${amount}; Can't subtract`);
+      }
+      point.point -= amount;
+      await this.points.updateOne({ user }, point);
+      return { msg: "Successfully subtract points" };
+    }
+  }
 
   /**
    * Updates the amount of points a user has by adding points
    * @param user The user we want to add points to
    * @param amount the amount we are adding to the user
    */
-  async addPoints(user: ObjectId, amount: number) {}
+  async addPoints(user: ObjectId, amount: number) {
+    await this.userExist(user);
+    const point = await this.points.readOne({ user });
+    if (point) {
+      point.point += amount;
+      await this.points.updateOne({ user }, point);
+      return { msg: "Successfully added points" };
+    }
+  }
 
   /**
    * Adds 1 to the users streak counter
    * @param user The user we want to modify the streak
    */
-  async addStreak(user: ObjectId) {}
+  async addStreak(user: ObjectId) {
+    await this.userExist(user);
+    const point = await this.points.readOne({ user });
+    if (point) {
+      point.streak += 1;
+      await this.points.updateOne({ user }, point);
+      return { msg: "Successfully added 1 to the streak " };
+    }
+  }
 
   /**
    * Resets the users streak
    * @param user The user we want to reset the streak
    */
-  async resetStreak(user: ObjectId) {}
+  async resetStreak(user: ObjectId) {
+    await this.userExist(user);
+    const point = await this.points.readOne({ user });
+    if (point) {
+      point.streak = 0;
+      await this.points.updateOne({ user }, point);
+      return { msg: "Successfully reset the streak" };
+    }
+  }
 
+  /**
+   * Checks if we this username has not been created.
+   * @param _id the user id
+   */
   private async canCreate(_id: ObjectId) {
     if (await this.points.readOne({ _id })) {
       throw new BadValuesError(`User with id ${_id} has already been created`);
+    }
+  }
+
+  /**
+   * This is to check if a particular user exists within the collection
+   * @param _id the id of the users
+   */
+  private async userExist(_id: ObjectId) {
+    const maybeUser = await this.points.readOne({ _id });
+    if (!maybeUser) {
+      throw new NotFoundError(`User with id ${_id} does not exist`);
     }
   }
 }
