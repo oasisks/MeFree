@@ -1,6 +1,6 @@
 import { ObjectId } from "mongodb";
 import DocCollection, { BaseDoc } from "../framework/doc";
-import { BadValuesError, NotAllowedError } from "./errors";
+import { BadValuesError, NotAllowedError, NotFoundError } from "./errors";
 
 export interface CategoryDoc extends BaseDoc {
   label: string;
@@ -37,14 +37,32 @@ export default class CategoryConcept {
    * @param _id the category that I want to be in
    * @param elt the element I want to delete
    */
-  async deleteElement(_id: ObjectId, elt: ObjectId) {}
+  async deleteElement(_id: ObjectId, elt: ObjectId) {
+    await this.categoryExist(_id);
+    const category = await this.categories.readOne({ _id });
+    if (category) {
+      category.items.delete(elt);
+      await this.categories.updateOne({ _id }, category);
+      return { msg: `Deleted an element from the category ${category.label}` };
+    }
+    return { msg: `The category with element ${_id} does not exist` };
+  }
 
   /**
    * Adds the element to the category
    * @param _id the category that I want to be in
    * @param elt the element I want to delete
    */
-  async addElement(_id: ObjectId, elt: ObjectId) {}
+  async addElement(_id: ObjectId, elt: ObjectId) {
+    await this.categoryExist(_id);
+    const category = await this.categories.readOne({ _id });
+    if (category) {
+      category.items.add(elt);
+      await this.categories.updateOne({ _id }, category);
+      return { msg: `Adde an element to the category ${category.label}` };
+    }
+    return { msg: `The category with element ${_id} does not exist` };
+  }
 
   /**
    * Checks whether if the category can be created
@@ -64,6 +82,13 @@ export default class CategoryConcept {
   private async isLabelUnique(label: string) {
     if (await this.categories.readOne({ label })) {
       throw new NotAllowedError(`Category with label ${label} already exists`);
+    }
+  }
+
+  private async categoryExist(_id: ObjectId) {
+    const maybeCategory = await this.categories.readOne({ _id });
+    if (maybeCategory === null) {
+      throw new NotFoundError(`Category with id ${_id} does not exist`);
     }
   }
 }
