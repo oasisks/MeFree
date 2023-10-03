@@ -2,7 +2,7 @@ import { ObjectId } from "mongodb";
 
 import { Router, getExpressRouter } from "./framework/router";
 
-import { Friend, Post, User, WebSession } from "./app";
+import { Category, Friend, Point, Post, User, WebSession } from "./app";
 import { PostDoc, PostOptions } from "./concepts/post";
 import { UserDoc } from "./concepts/user";
 import { WebSessionDoc } from "./concepts/websession";
@@ -135,6 +135,53 @@ class Routes {
     const user = WebSession.getUser(session);
     const fromId = (await User.getUserByUsername(from))._id;
     return await Friend.rejectRequest(fromId, user);
+  }
+  @Router.post("/point")
+  async initializePoints(session: WebSessionDoc) {
+    const user = WebSession.getUser(session);
+    return await Point.initializePoints(user);
+  }
+  @Router.post("/point/send/:to/:amount")
+  async sendPoints(session: WebSessionDoc, to: ObjectId, amount: number) {
+    const user = WebSession.getUser(session);
+    return await Point.sendPoints(user, to, amount);
+  }
+  @Router.patch("/point/reset-streak")
+  async resetStreak(session: WebSessionDoc) {
+    const user = WebSession.getUser(session);
+    return await Point.resetStreak(user);
+  }
+
+  @Router.patch("/point/update-streak")
+  async updateStreak(session: WebSessionDoc) {
+    const user = WebSession.getUser(session);
+    return await Point.addStreak(user);
+  }
+
+  @Router.patch("/points/use-points/:amount")
+  async usePoints(session: WebSessionDoc, amount: number) {
+    const user = WebSession.getUser(session);
+    return await Point.subPoints(user, amount);
+  }
+
+  @Router.post("/category/:label/:items")
+  async createCategory(label: string, items: Set<ObjectId>) {
+    return await Category.createCategory(label, items);
+  }
+
+  @Router.delete("/category/:label")
+  async deleteCategory(label: ObjectId) {
+    return await Category.deleteCategory(label);
+  }
+
+  @Router.delete("/category/:label/:elt")
+  async deleteElement(label: ObjectId, element: ObjectId) {
+    return await Category.deleteElement(label, element);
+  }
+
+  @Router.patch("/category/:label/:elt")
+  async addElement(label: ObjectId, element: ObjectId) {
+    return await Category.addElement(label, element);
   }
 }
 
