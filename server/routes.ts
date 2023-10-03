@@ -136,6 +136,8 @@ class Routes {
     const fromId = (await User.getUserByUsername(from))._id;
     return await Friend.rejectRequest(fromId, user);
   }
+
+  // New Concepts
   @Router.post("/point")
   async initializePoints(session: WebSessionDoc) {
     const user = WebSession.getUser(session);
@@ -183,6 +185,79 @@ class Routes {
   async addElement(label: ObjectId, element: ObjectId) {
     return await Category.addElement(label, element);
   }
+
+  // Outline of the rest
+  @Router.post("/group/")
+  async createGroup(websession: WebSessionDoc, users: Set<ObjectId>, name: string, isPrivate: boolean) {}
+
+  @Router.post("/group/request/:to")
+  async inviteToGroup(websession: WebSessionDoc, group: ObjectId, user: ObjectId) {}
+
+  @Router.delete("group/delete/:user")
+  async deleteFromGroup(websession: WebSessionDoc, group: ObjectId, user: ObjectId) {}
+
+  @Router.delete("group/delete/:group")
+  async deleteGroup(websession: WebSessionDoc, group: ObjectId) {}
+
+  @Router.patch("group/ownership/:user")
+  async giveOwnership(websession: WebSessionDoc, owner: ObjectId, user: ObjectId) {}
+
+  @Router.patch("group/id/:isPublic")
+  async changePublicity(websession: WebSessionDoc, group: ObjectId, isPublic: boolean) {}
+
+  @Router.get("group/ids/:id")
+  async getGroup(websession: WebSessionDoc, group: ObjectId) {}
+
+  @Router.post("component")
+  async createComponent(websession: WebSessionDoc, data: ObjectId) {}
+
+  @Router.patch("component/dimensions/id/:width/:height")
+  async changeComponentDimension(websession: WebSessionDoc, width: number, height: number) {}
+
+  @Router.patch("component/positions/id/:x/:y")
+  async changePosition(websession: WebSessionDoc, x: number, y: number) {}
+
+  @Router.patch("component/fonts/id/:font/:size/:color")
+  async changeText(websession: WebSessionDoc, font: number, size: number, color: number) {}
+
+  @Router.post("vote/ban")
+  async createBanVote(websession: WebSessionDoc, target: ObjectId) {}
+
+  @Router.post("vote/word")
+  async createWordVote(websession: WebSessionDoc, word: String) {}
+
+  @Router.get("search/:query")
+  async search(websession: WebSessionDoc, query: ObjectId) {}
+
+  @Router.post("discussionTopic")
+  async createDiscussionTopic(title: String, owner: ObjectId) {}
+
+  @Router.post("discussionTopic/posts/:msg")
+  async addDiscussionPost(topic: ObjectId, post: string) {}
+
+  @Router.post("discussion/archives")
+  async archiveDiscussionTopic(topic: ObjectId) {}
+
+  /**
+   * Generates a spotlight from a category grabbing a random user.
+   */
+  @Router.post("spotlight")
+  async createSpotlight(category: ObjectId) {}
+
+  @Router.post("spotlight/posts/:msg")
+  async addPost(spotlight: ObjectId) {}
+
+  @Router.get("profile")
+  async getProfile(websession: WebSessionDoc) {}
+
+  @Router.post("censoredWordList")
+  async createWordList(title: String, scope: ObjectId) {}
+
+  @Router.patch("censoredWordList/add/:word") {}
+  async addWord(wordList: ObjectId, word: string) {}
+
+  @Router.patch("censoredWordList/delete/:word") 
+  async deleteWord(wordList: ObjectId, word: string) {}
 }
 
 export default getExpressRouter(new Routes());
