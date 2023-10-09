@@ -1,4 +1,5 @@
 import CategoryConcept from "./concepts/category";
+import CensoredWordListConcept from "./concepts/censoredwordlist";
 import FriendConcept from "./concepts/friend";
 import PointsConcept from "./concepts/points";
 import PostConcept from "./concepts/post";
@@ -12,3 +13,4 @@ export const Post = new PostConcept();
 export const Friend = new FriendConcept();
 export const Category = new CategoryConcept();
 export const Point = new PointsConcept();
+export const CensoredWordList = new CensoredWordListConcept();

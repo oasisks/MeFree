@@ -77,6 +77,18 @@ const operations: operation[] = [
     method: "DELETE",
     fields: { id: "input" },
   },
+  {
+    name: "Create WordList",
+    endpoint: "/api/censoredwordlist",
+    method: "POST",
+    fields: {},
+  },
+  {
+    name: "Add word to WordList",
+    endpoint: "/api/censorwordlist/:id",
+    method: "PATCH",
+    fields: { id: "input", word: "input" },
+  },
 ];
 
 // Do not edit below here.
