@@ -15,6 +15,7 @@ export default class CategoryConcept {
    * Creates a new category
    * @param label the title of the category
    * @param items the elements within this category
+   * @param categoryType the type of the category (either "discussion" or "group")
    * @returns returns a message
    */
   async createCategory(label: string, items: Array<ObjectId>, categoryType: string) {
