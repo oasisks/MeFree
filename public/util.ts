@@ -149,6 +149,36 @@ const operations: operation[] = [
     method: "GET",
     fields: {},
   },
+  {
+    name: "Create Group",
+    endpoint: "/api/groups",
+    method: "POST",
+    fields: { status: "input" },
+  },
+  {
+    name: "Get your Groups",
+    endpoint: "/api/group",
+    method: "GET",
+    fields: {},
+  },
+  {
+    name: "Get all groups",
+    endpoint: "/api/groups",
+    method: "GET",
+    fields: {},
+  },
+  {
+    name: "Invite to group",
+    endpoint: "/api/groups/:id/:invitee",
+    method: "PATCH",
+    fields: { id: "input", invitee: "input" },
+  },
+  {
+    name: "Delete from group",
+    endpoint: "/api/groups/:id/:resident",
+    method: "DELETE",
+    fields: { id: "input", resident: "input" },
+  },
 ];
 
 // Do not edit below here.

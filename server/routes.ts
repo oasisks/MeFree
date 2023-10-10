@@ -2,7 +2,7 @@ import { ObjectId } from "mongodb";
 
 import { Router, getExpressRouter } from "./framework/router";
 
-import { CensoredWordList, Friend, Point, Post, Profile, User, WebSession } from "./app";
+import { CensoredWordList, Friend, Group, Point, Post, Profile, User, WebSession } from "./app";
 import { PostDoc, PostOptions } from "./concepts/post";
 import { ProfileDoc } from "./concepts/profile";
 import { UserDoc } from "./concepts/user";
@@ -231,6 +231,62 @@ class Routes {
   async updateProfile(session: WebSessionDoc, update: Partial<ProfileDoc>) {
     const user = WebSession.getUser(session);
     return await Profile.update(user, update);
+  }
+
+  @Router.post("/groups")
+  async createGroup(session: WebSessionDoc, status: boolean) {
+    const user = WebSession.getUser(session);
+    const posts = new Array<ObjectId>();
+    const residents = new Array<ObjectId>();
+    const censoredWordList = await CensoredWordList.create();
+
+    residents.push(user);
+
+    return await Group.createGroup(user, residents, status, censoredWordList.list!._id, posts);
+  }
+
+  @Router.get("/group")
+  async getUserGroups(session: WebSessionDoc) {
+    const user = WebSession.getUser(session);
+    return await Group.getGroupsByResidentId(user);
+  }
+
+  @Router.get("/groups")
+  async getAllGroups() {
+    return await Group.getAllGroups();
+  }
+
+  @Router.patch("/groups/:_id/:invitee")
+  async invite(session: WebSessionDoc, _id: ObjectId, invitee: string) {
+    const inviter = WebSession.getUser(session);
+    const inviteeId = (await User.getUserByUsername(invitee))._id;
+    return await Group.invite(_id, inviter, inviteeId);
+  }
+
+  @Router.delete("/groups/:_id/:resident")
+  async deleteUserFromGroup(session: WebSessionDoc, _id: ObjectId, resident: string) {
+    const initiator = WebSession.getUser(session);
+    const residentId = (await User.getUserByUsername(resident))._id;
+    return await Group.deleteUser(_id, initiator, residentId);
+  }
+
+  @Router.delete("/groups/:_id")
+  async deleteGroup(session: WebSessionDoc, _id: ObjectId) {
+    const initiator = WebSession.getUser(session);
+    return await Group.deleteGroup(_id, initiator);
+  }
+
+  @Router.post("/groups/:_id/:newOwner")
+  async giveOwnerShip(session: WebSessionDoc, _id: ObjectId, newOwner: string) {
+    const initiator = WebSession.getUser(session);
+    const newOwnerId = (await User.getUserByUsername(newOwner))._id;
+    return await Group.giveOwnerShip(_id, initiator, newOwnerId);
+  }
+
+  @Router.post("/groups/:_id")
+  async changePrivacy(session: WebSessionDoc, _id: ObjectId, privacy: boolean) {
+    const owner = WebSession.getUser(session);
+    return await Group.changePrivacy(_id, owner, privacy);
   }
 }
 

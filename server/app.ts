@@ -1,10 +1,12 @@
 import CategoryConcept from "./concepts/category";
 import CensoredWordListConcept from "./concepts/censoredwordlist";
 import FriendConcept from "./concepts/friend";
+import GroupConcept from "./concepts/group";
 import PointsConcept from "./concepts/points";
 import PostConcept from "./concepts/post";
 import ProfileConcept from "./concepts/profile";
 import UserConcept from "./concepts/user";
+import VoteConcept from "./concepts/vote";
 import WebSessionConcept from "./concepts/websession";
 
 // App Definition using concepts
@@ -16,3 +18,5 @@ export const Category = new CategoryConcept();
 export const Point = new PointsConcept();
 export const CensoredWordList = new CensoredWordListConcept();
 export const Profile = new ProfileConcept();
+export const Group = new GroupConcept();
+export const Vote = new VoteConcept();
