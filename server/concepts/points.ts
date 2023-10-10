@@ -98,6 +98,11 @@ export default class PointsConcept {
     return await this.points.readOne({ user });
   }
 
+  async deletePoints(user: ObjectId) {
+    await this.userExist(user);
+    return await this.points.deleteOne({ user });
+  }
+
   /**
    * Checks if we this username has not been created.
    * @param _id the user id

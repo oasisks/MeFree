@@ -4,7 +4,8 @@ import { BadValuesError, NotAllowedError, NotFoundError } from "./errors";
 
 export interface CategoryDoc extends BaseDoc {
   label: string;
-  items: Set<ObjectId>;
+  categoryType: string;
+  items: Array<ObjectId>;
 }
 
 export default class CategoryConcept {
@@ -16,9 +17,9 @@ export default class CategoryConcept {
    * @param items the elements within this category
    * @returns returns a message
    */
-  async createCategory(label: string, items: Set<ObjectId>) {
+  async createCategory(label: string, items: Array<ObjectId>, categoryType: string) {
     await this.canCreate(label);
-    const _id = await this.categories.createOne({ label, items });
+    const _id = await this.categories.createOne({ label, categoryType, items });
     return { msg: "Category successfully created", category: await this.categories.readOne({ _id }) };
   }
 
@@ -41,7 +42,7 @@ export default class CategoryConcept {
     await this.categoryExist(_id);
     const category = await this.categories.readOne({ _id });
     if (category) {
-      category.items.delete(elt);
+      category.items.filter((item) => item != elt);
       await this.categories.updateOne({ _id }, category);
       return { msg: `Deleted an element from the category ${category.label}` };
     }
@@ -57,7 +58,7 @@ export default class CategoryConcept {
     await this.categoryExist(_id);
     const category = await this.categories.readOne({ _id });
     if (category) {
-      category.items.add(elt);
+      category.items.push(elt);
       await this.categories.updateOne({ _id }, category);
       return { msg: `Adde an element to the category ${category.label}` };
     }

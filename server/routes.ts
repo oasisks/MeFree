@@ -2,8 +2,9 @@ import { ObjectId } from "mongodb";
 
 import { Router, getExpressRouter } from "./framework/router";
 
-import { CensoredWordList, Friend, Point, Post, User, WebSession } from "./app";
+import { CensoredWordList, Friend, Point, Post, Profile, User, WebSession } from "./app";
 import { PostDoc, PostOptions } from "./concepts/post";
+import { ProfileDoc } from "./concepts/profile";
 import { UserDoc } from "./concepts/user";
 import { WebSessionDoc } from "./concepts/websession";
 import Responses from "./responses";
@@ -26,11 +27,13 @@ class Routes {
   }
 
   @Router.post("/users")
-  async createUser(session: WebSessionDoc, username: string, password: string) {
+  async createUser(session: WebSessionDoc, username: string, password: string, name: string, sex: string, dob: string) {
     WebSession.isLoggedOut(session);
     const user = (await User.create(username, password)).user;
     if (user) {
-      await Point.initializePoints(user._id);
+      const pointDoc = (await Point.initializePoints(user._id)).point;
+      await Profile.initializeProfile(user._id, name, sex, dob, pointDoc!._id);
+      await Point.deletePoints(user._id);
     }
     return { msg: "Successfully created an user", user: user };
   }
@@ -45,6 +48,7 @@ class Routes {
   async deleteUser(session: WebSessionDoc) {
     const user = WebSession.getUser(session);
     WebSession.end(session);
+    await Profile.deleteProfile(user);
     return await User.delete(user);
   }
 
@@ -215,6 +219,18 @@ class Routes {
       }
     }
     return await Point.addStreak(user);
+  }
+
+  @Router.get("/profile")
+  async getProfile(session: WebSessionDoc) {
+    const user = WebSession.getUser(session);
+    return await Profile.getProfile(user);
+  }
+
+  @Router.patch("/profile")
+  async updateProfile(session: WebSessionDoc, update: Partial<ProfileDoc>) {
+    const user = WebSession.getUser(session);
+    return await Profile.update(user, update);
   }
 }
 
