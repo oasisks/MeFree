@@ -4,16 +4,16 @@ import { BadValuesError, NotFoundError } from "./errors";
 
 export interface PointsDoc extends BaseDoc {
   user: ObjectId;
-  point: number;
+  amount: number;
   streak: number;
 }
 
 export default class PointsConcept {
   public readonly points = new DocCollection<PointsDoc>("points");
 
-  async initializePoints(user: ObjectId, point: number = 100, streak: number = 0) {
+  async initializePoints(user: ObjectId, amount: number = 100, streak: number = 0) {
     await this.canCreate(user);
-    const _id = await this.points.createOne({ user, point, streak });
+    const _id = await this.points.createOne({ user, amount, streak });
     return { msg: "Successfully initialized the points", point: await this.points.readOne({ _id }) };
   }
 
@@ -28,6 +28,8 @@ export default class PointsConcept {
     await this.subPoints(sender, amount);
     // we then add the points to the receiver
     await this.addPoints(receiver, amount);
+
+    return { msg: `Successfully send ${amount} points` };
   }
 
   /**
@@ -39,10 +41,10 @@ export default class PointsConcept {
     await this.userExist(user);
     const point = await this.points.readOne({ user });
     if (point) {
-      if (amount > point.point) {
-        throw new BadValuesError(`User: ${point.point}; Amount to be Subtracted: ${amount}; Can't subtract`);
+      if (amount > point.amount) {
+        throw new BadValuesError(`User: ${point.amount}; Amount to be Subtracted: ${amount}; Can't subtract`);
       }
-      point.point -= amount;
+      point.amount -= amount;
       await this.points.updateOne({ user }, point);
       return { msg: "Successfully subtract points" };
     }
@@ -57,7 +59,7 @@ export default class PointsConcept {
     await this.userExist(user);
     const point = await this.points.readOne({ user });
     if (point) {
-      point.point += amount;
+      point.amount += amount;
       await this.points.updateOne({ user }, point);
       return { msg: "Successfully added points" };
     }
@@ -91,12 +93,17 @@ export default class PointsConcept {
     }
   }
 
+  async getPoint(user: ObjectId) {
+    await this.userExist(user);
+    return await this.points.readOne({ user });
+  }
+
   /**
    * Checks if we this username has not been created.
    * @param _id the user id
    */
   private async canCreate(_id: ObjectId) {
-    if (await this.points.readOne({ _id })) {
+    if (await this.points.readOne({ user: _id })) {
       throw new BadValuesError(`User with id ${_id} has already been created`);
     }
   }
@@ -106,7 +113,7 @@ export default class PointsConcept {
    * @param _id the id of the users
    */
   private async userExist(_id: ObjectId) {
-    const maybeUser = await this.points.readOne({ _id });
+    const maybeUser = await this.points.readOne({ user: _id });
     if (!maybeUser) {
       throw new NotFoundError(`User with id ${_id} does not exist`);
     }

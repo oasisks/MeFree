@@ -85,9 +85,57 @@ const operations: operation[] = [
   },
   {
     name: "Add word to WordList",
-    endpoint: "/api/censorwordlist/:id",
+    endpoint: "/api/censorwordlist/add/:id",
     method: "PATCH",
     fields: { id: "input", word: "input" },
+  },
+  {
+    name: "Delete word to WordList",
+    endpoint: "/api/censorwordlist/delete/:id",
+    method: "PATCH",
+    fields: { id: "input", word: "input" },
+  },
+  {
+    name: "Delete WordList",
+    endpoint: "/api/censorwordlist/:id",
+    method: "DELETE",
+    fields: { id: "input" },
+  },
+  {
+    name: "Get WordList",
+    endpoint: "/api/censorwordlist/:id",
+    method: "GET",
+    fields: { id: "input" },
+  },
+  {
+    name: "Create Points",
+    endpoint: "/api/points",
+    method: "POST",
+    fields: { amount: "input", streak: "input" },
+  },
+  {
+    name: "Get Point",
+    endpoint: "/api/point",
+    method: "GET",
+    fields: {},
+  },
+  {
+    name: "Update Point",
+    endpoint: "/api/point/:amount",
+    method: "PATCH",
+    fields: { amount: "input" },
+  },
+  {
+    name: "Streak Update",
+    endpoint: "/api/points/streak",
+    method: "PATCH",
+    fields: {},
+  },
+  {
+    name: "Send Points",
+    endpoint: "/api/point/requests/:to",
+    method: "PATCH",
+    fields: { to: "input", amount: "input" },
   },
 ];
 

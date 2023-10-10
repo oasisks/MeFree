@@ -2,7 +2,7 @@ import { ObjectId } from "mongodb";
 
 import { Router, getExpressRouter } from "./framework/router";
 
-import { CensoredWordList, Friend, Post, User, WebSession } from "./app";
+import { CensoredWordList, Friend, Point, Post, User, WebSession } from "./app";
 import { PostDoc, PostOptions } from "./concepts/post";
 import { UserDoc } from "./concepts/user";
 import { WebSessionDoc } from "./concepts/websession";
@@ -28,7 +28,11 @@ class Routes {
   @Router.post("/users")
   async createUser(session: WebSessionDoc, username: string, password: string) {
     WebSession.isLoggedOut(session);
-    return await User.create(username, password);
+    const user = (await User.create(username, password)).user;
+    if (user) {
+      await Point.initializePoints(user._id);
+    }
+    return { msg: "Successfully created an user", user: user };
   }
 
   @Router.patch("/users")
@@ -142,132 +146,76 @@ class Routes {
     return await CensoredWordList.create();
   }
 
-  @Router.patch("/censorwordlist/:_id")
+  @Router.patch("/censorwordlist/add/:_id")
   async updateWordList(_id: ObjectId, word: string) {
     return await CensoredWordList.addWord(_id, word);
   }
 
-  // // New Concepts
-  // @Router.post("/point")
-  // async initializePoints(session: WebSessionDoc) {
-  //   const user = WebSession.getUser(session);
-  //   return await Point.initializePoints(user);
-  // }
-  // @Router.post("/point/send/:to/:amount")
-  // async sendPoints(session: WebSessionDoc, to: ObjectId, amount: number) {
-  //   const user = WebSession.getUser(session);
-  //   return await Point.sendPoints(user, to, amount);
-  // }
-  // @Router.patch("/point/reset-streak")
-  // async resetStreak(session: WebSessionDoc) {
-  //   const user = WebSession.getUser(session);
-  //   return await Point.resetStreak(user);
-  // }
+  @Router.patch("/censorwordlist/delete/:_id")
+  async deleteWordFromList(_id: ObjectId, word: string) {
+    return await CensoredWordList.deleteWord(_id, word);
+  }
 
-  // @Router.patch("/point/update-streak")
-  // async updateStreak(session: WebSessionDoc) {
-  //   const user = WebSession.getUser(session);
-  //   return await Point.addStreak(user);
-  // }
+  @Router.delete("/censorwordlist/:_id")
+  async deleteWordList(_id: ObjectId) {
+    return await CensoredWordList.delete(_id);
+  }
 
-  // @Router.patch("/points/use-points/:amount")
-  // async usePoints(session: WebSessionDoc, amount: number) {
-  //   const user = WebSession.getUser(session);
-  //   return await Point.subPoints(user, amount);
-  // }
+  @Router.get("/censorwordlist/:_id")
+  async getCensoredWordList(_id: ObjectId) {
+    return await CensoredWordList.getList(_id);
+  }
 
-  // @Router.post("/category/:label/:items")
-  // async createCategory(label: string, items: Set<ObjectId>) {
-  //   return await Category.createCategory(label, items);
-  // }
+  // Just a tester
+  @Router.post("/points")
+  async initializePoints(session: WebSessionDoc, amount: number = 100, streak: number = 0) {
+    const user = WebSession.getUser(session);
+    return await Point.initializePoints(user, amount, streak);
+  }
 
-  // @Router.delete("/category/:label")
-  // async deleteCategory(label: ObjectId) {
-  //   return await Category.deleteCategory(label);
-  // }
+  @Router.get("/point")
+  async getPoint(session: WebSessionDoc) {
+    const user = WebSession.getUser(session);
+    return await Point.getPoint(user);
+  }
 
-  // @Router.delete("/category/:label/:elt")
-  // async deleteElement(label: ObjectId, element: ObjectId) {
-  //   return await Category.deleteElement(label, element);
-  // }
+  @Router.patch("/point/:amount")
+  async updatePoints(session: WebSessionDoc, amount: string) {
+    const user = WebSession.getUser(session);
+    const amount_num = parseInt(amount);
+    if (amount_num >= 0) {
+      return await Point.addPoints(user, amount_num);
+    }
+    return await Point.subPoints(user, -amount_num);
+  }
 
-  // @Router.patch("/category/:label/:elt")
-  // async addElement(label: ObjectId, element: ObjectId) {
-  //   return await Category.addElement(label, element);
-  // }
+  @Router.patch("/point/requests/:to")
+  async sendPoints(session: WebSessionDoc, to: string, amount: string) {
+    const user = WebSession.getUser(session);
+    const toId = (await User.getUserByUsername(to))._id;
+    const amount_num = parseInt(amount);
+    // console.log(user, toId, amount_num);
+    return await Point.sendPoints(user, toId, amount_num);
+  }
 
-  // // Outline of the rest
-  // @Router.post("/group/")
-  // async createGroup(websession: WebSessionDoc, users: Set<ObjectId>, name: string, isPrivate: boolean) {}
-
-  // @Router.post("/group/request/:to")
-  // async inviteToGroup(websession: WebSessionDoc, group: ObjectId, user: ObjectId) {}
-
-  // @Router.delete("group/delete/:user")
-  // async deleteFromGroup(websession: WebSessionDoc, group: ObjectId, user: ObjectId) {}
-
-  // @Router.delete("group/delete/:group")
-  // async deleteGroup(websession: WebSessionDoc, group: ObjectId) {}
-
-  // @Router.patch("group/ownership/:user")
-  // async giveOwnership(websession: WebSessionDoc, owner: ObjectId, user: ObjectId) {}
-
-  // @Router.patch("group/id/:isPublic")
-  // async changePublicity(websession: WebSessionDoc, group: ObjectId, isPublic: boolean) {}
-
-  // @Router.get("group/ids/:id")
-  // async getGroup(websession: WebSessionDoc, group: ObjectId) {}
-
-  // @Router.post("component")
-  // async createComponent(websession: WebSessionDoc, data: ObjectId) {}
-
-  // @Router.patch("component/dimensions/id/:width/:height")
-  // async changeComponentDimension(websession: WebSessionDoc, width: number, height: number) {}
-
-  // @Router.patch("component/positions/id/:x/:y")
-  // async changePosition(websession: WebSessionDoc, x: number, y: number) {}
-
-  // @Router.patch("component/fonts/id/:font/:size/:color")
-  // async changeText(websession: WebSessionDoc, font: number, size: number, color: number) {}
-
-  // @Router.post("vote/ban")
-  // async createBanVote(websession: WebSessionDoc, target: ObjectId) {}
-
-  // @Router.post("vote/word")
-  // async createWordVote(websession: WebSessionDoc, word: String) {}
-
-  // @Router.get("search/:query")
-  // async search(websession: WebSessionDoc, query: ObjectId) {}
-
-  // @Router.post("discussionTopic")
-  // async createDiscussionTopic(title: String, owner: ObjectId) {}
-
-  // @Router.post("discussionTopic/posts/:msg")
-  // async addDiscussionPost(topic: ObjectId, post: string) {}
-
-  // @Router.post("discussion/archives")
-  // async archiveDiscussionTopic(topic: ObjectId) {}
-
-  // /**
-  //  * Generates a spotlight from a category grabbing a random user.
-  //  */
-  // @Router.post("spotlight")
-  // async createSpotlight(category: ObjectId) {}
-
-  // @Router.post("spotlight/posts/:msg")
-  // async addPost(spotlight: ObjectId) {}
-
-  // @Router.get("profile")
-  // async getProfile(websession: WebSessionDoc) {}
-
-  // @Router.post("censoredWordList")
-  // async createWordList(title: String, scope: ObjectId) {}
-
-  // @Router.patch("censoredWordList/add/:word")
-  // async addWord(wordList: ObjectId, word: string) {}
-
-  // @Router.patch("censoredWordList/delete/:word")
-  // async deleteWord(wordList: ObjectId, word: string) {}
+  /**
+   * We want to update the streak if the user logs back in within
+   * 24 hours
+   */
+  @Router.patch("/points/streak")
+  async updateStreak(session: WebSessionDoc) {
+    const date = new Date();
+    const user = WebSession.getUser(session);
+    const data = await Point.getPoint(user);
+    const secondsInADay = 86400;
+    if (data) {
+      const diff = date.getTime() - data.dateUpdated.getTime();
+      if (diff / 1000 > secondsInADay) {
+        return await Point.resetStreak(user);
+      }
+    }
+    return await Point.addStreak(user);
+  }
 }
 
 export default getExpressRouter(new Routes());

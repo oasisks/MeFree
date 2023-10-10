@@ -1,9 +1,9 @@
 import { ObjectId } from "mongodb";
 import DocCollection, { BaseDoc } from "../framework/doc";
-import { NotFoundError } from "./errors";
+import { BadValuesError, NotFoundError } from "./errors";
 
 export interface CensoredWordListDoc extends BaseDoc {
-  words: Set<string>;
+  words: Array<string>;
 }
 
 export default class CensoredWordListConcept {
@@ -13,9 +13,17 @@ export default class CensoredWordListConcept {
    * This just creates a word list
    */
   async create() {
-    const words = new Set<string>();
+    const words = new Array<string>();
     const _id = await this.lists.createOne({ words });
     return { msg: "Successfully created a censored word list!", list: await this.lists.readOne({ _id }) };
+  }
+
+  /**
+   * Gets the list given a particular id
+   */
+  async getList(_id: ObjectId) {
+    await this.validId(_id);
+    return await this.lists.readOne({ _id });
   }
 
   /**
@@ -34,15 +42,13 @@ export default class CensoredWordListConcept {
    */
   async addWord(_id: ObjectId, word: string) {
     await this.validId(_id);
+    await this.isNewWord(_id, word);
     const list = await this.lists.readOne({ _id });
-    list?.words.add(word);
-    // if (list) {
-    //   const words = list.words;
-
-    //   words.add(word);
-    //   await this.lists.updateOne({ _id }, { words });
-    //   return { msg: `Successfully added the word ${word}.` };
-    // }
+    if (list) {
+      list.words.push(word);
+      await this.lists.updateOne({ _id }, list);
+      return { msg: `Successfully added the word ${word}.` };
+    }
   }
 
   /**
@@ -55,8 +61,7 @@ export default class CensoredWordListConcept {
     await this.validId(_id);
     const list = await this.lists.readOne({ _id });
     if (list) {
-      list.words.delete(word);
-      await this.lists.updateOne({ _id }, list);
+      await this.lists.updateOne({ _id }, { words: list.words.filter((value) => value != word) });
       return { msg: `Successfully deleted the word ${word}.` };
     }
   }
@@ -70,6 +75,13 @@ export default class CensoredWordListConcept {
     const maybeList = await this.lists.readOne({ _id });
     if (!maybeList) {
       throw new NotFoundError(`There exists no list with id ${_id}`);
+    }
+  }
+
+  private async isNewWord(_id: ObjectId, word: string) {
+    const list = await this.lists.readOne({ _id });
+    if (list?.words.includes(word)) {
+      throw new BadValuesError("Word already exists");
     }
   }
 }
