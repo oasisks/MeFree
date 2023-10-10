@@ -4,7 +4,7 @@ import { BadValuesError, NotAllowedError, NotFoundError } from "./errors";
 
 export interface CategoryDoc extends BaseDoc {
   label: string;
-  items: Set<Object>;
+  items: Set<ObjectId>;
 }
 
 export default class CategoryConcept {

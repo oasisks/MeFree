@@ -35,13 +35,14 @@ export default class CensoredWordListConcept {
   async addWord(_id: ObjectId, word: string) {
     await this.validId(_id);
     const list = await this.lists.readOne({ _id });
-    if (list) {
-      console.log(list);
-      list.words.add(word);
-      console.log(list);
-      await this.lists.updateOne({ _id }, list);
-      return { msg: `Successfully added the word ${word}.` };
-    }
+    list?.words.add(word);
+    // if (list) {
+    //   const words = list.words;
+
+    //   words.add(word);
+    //   await this.lists.updateOne({ _id }, { words });
+    //   return { msg: `Successfully added the word ${word}.` };
+    // }
   }
 
   /**
