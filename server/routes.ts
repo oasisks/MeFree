@@ -2,7 +2,8 @@ import { ObjectId } from "mongodb";
 
 import { Router, getExpressRouter } from "./framework/router";
 
-import { Category, CensoredWordList, DiscussionTopic, Friend, Group, Point, Post, Profile, User, Vote, WebSession } from "./app";
+import { Category, CensoredWordList, Component, DiscussionTopic, Friend, Group, Point, Post, Profile, User, Vote, WebSession } from "./app";
+import { ComponentDocs } from "./concepts/component";
 import { PostDoc, PostOptions } from "./concepts/post";
 import { ProfileDoc } from "./concepts/profile";
 import { UserDoc } from "./concepts/user";
@@ -436,6 +437,28 @@ class Routes {
     const user = WebSession.getUser(session);
     console.log(_id, user);
     return await Vote.voteYes(_id, user);
+  }
+
+  @Router.post("/components")
+  async createComponent(componentType: ObjectId, width: string, height: string, fontSize: string, font: string, fontColor: string, xPos: string, yPos: string) {
+    return await Component.createComponent(componentType, width, height, fontSize, font, fontColor, xPos, yPos);
+  }
+
+  @Router.patch("/components/:componentType")
+  async updateComponent(componentType: ObjectId, update: Partial<ComponentDocs>) {
+    console.log(update);
+    console.log(componentType);
+    return await Component.updateComponent(componentType, update);
+  }
+
+  @Router.delete("/components/:componentType")
+  async deleteComponents(componentType: ObjectId) {
+    return await Component.deleteComponent(componentType);
+  }
+
+  @Router.get("/components")
+  async get() {
+    return await Component.getAllComponents();
   }
 }
 

@@ -251,6 +251,30 @@ const operations: operation[] = [
     method: "PATCH",
     fields: { id: "input" },
   },
+  {
+    name: "Create Component",
+    endpoint: "/api/components",
+    method: "POST",
+    fields: { componentType: "input", width: "input", height: "input", fontSize: "input", font: "input", fontColor: "input", xPos: "input", yPos: "input" },
+  },
+  {
+    name: "Update Component",
+    endpoint: "/api/components/:componentType",
+    method: "PATCH",
+    fields: { componentType: "input", update: { width: "input", height: "input", fontSize: "input", font: "input", fontColor: "input", xPos: "input", yPos: "input" } },
+  },
+  {
+    name: "Delete Component",
+    endpoint: "/api/components/:componentType",
+    method: "DELETE",
+    fields: { componentType: "input" },
+  },
+  {
+    name: "Get all Components",
+    endpoint: "/api/components",
+    method: "GET",
+    fields: {},
+  },
 ];
 
 // Do not edit below here.

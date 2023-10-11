@@ -1,5 +1,6 @@
 import CategoryConcept from "./concepts/category";
 import CensoredWordListConcept from "./concepts/censoredwordlist";
+import ComponentConcept from "./concepts/component";
 import DiscussionTopicConcept from "./concepts/discussiontopic";
 import FriendConcept from "./concepts/friend";
 import GroupConcept from "./concepts/group";
@@ -22,3 +23,4 @@ export const Profile = new ProfileConcept();
 export const Group = new GroupConcept();
 export const Vote = new VoteConcept();
 export const DiscussionTopic = new DiscussionTopicConcept();
+export const Component = new ComponentConcept();
