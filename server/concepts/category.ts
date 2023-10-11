@@ -13,13 +13,14 @@ export default class CategoryConcept {
 
   /**
    * Creates a new category
-   * @param label the title of the category
+   * @param label the title of the category must be unique
    * @param items the elements within this category
    * @param categoryType the type of the category (either "discussion" or "group")
    * @returns returns a message
    */
   async createCategory(label: string, items: Array<ObjectId>, categoryType: string) {
     await this.canCreate(label);
+    this.validCategoryType(categoryType);
     const _id = await this.categories.createOne({ label, categoryType, items });
     return { msg: "Category successfully created", category: await this.categories.readOne({ _id }) };
   }
@@ -56,6 +57,7 @@ export default class CategoryConcept {
    * @param elt the element I want to delete
    */
   async addElement(_id: ObjectId, elt: ObjectId) {
+    1;
     await this.categoryExist(_id);
     const category = await this.categories.readOne({ _id });
     if (category) {
@@ -96,6 +98,14 @@ export default class CategoryConcept {
     const maybeCategory = await this.categories.readOne({ _id });
     if (maybeCategory === null) {
       throw new NotFoundError(`Category with id ${_id} does not exist`);
+    }
+  }
+
+  private validCategoryType(categoryType: string) {
+    const valid = ["discussion", "groups"];
+
+    if (!categoryType.includes(categoryType)) {
+      throw new BadValuesError("The category type is not correct");
     }
   }
 }

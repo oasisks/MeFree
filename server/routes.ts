@@ -460,6 +460,31 @@ class Routes {
   async get() {
     return await Component.getAllComponents();
   }
+
+  @Router.post("/categories")
+  async createCategory(label: string, items: Array<ObjectId>, categoryType: string) {
+    return await Category.createCategory(label, items, categoryType);
+  }
+
+  @Router.delete("/categories/:id")
+  async deletCategory(_id: ObjectId) {
+    return await Category.deleteCategory(_id);
+  }
+
+  @Router.delete("/categories/:id/:elt")
+  async deleteElement(_id: ObjectId, elt: ObjectId) {
+    return await Category.deleteElement(_id, elt);
+  }
+
+  @Router.patch("/categories/:id/:elt")
+  async addElement(_id: ObjectId, elt: ObjectId) {
+    return await Category.addElement(_id, elt);
+  }
+
+  @Router.get("/categories")
+  async getAllCategories(categoryType: string) {
+    return await Category.getAllCategories(categoryType);
+  }
 }
 
 export default getExpressRouter(new Routes());
