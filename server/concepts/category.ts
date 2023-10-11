@@ -66,6 +66,11 @@ export default class CategoryConcept {
     return { msg: `The category with element ${_id} does not exist` };
   }
 
+  async getAllCategories(categoryType: string) {
+    const categories = await this.categories.readMany({ categoryType });
+    return categories.map((elt) => elt.label);
+  }
+
   /**
    * Checks whether if the category can be created
    * @param label the label of the category

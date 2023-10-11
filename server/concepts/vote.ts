@@ -3,21 +3,16 @@ import DocCollection, { BaseDoc } from "../framework/doc";
 import { BadValuesError, NotFoundError } from "./errors";
 
 export interface VoteDoc extends BaseDoc {
+  initiator: ObjectId;
   title: string;
   reason: string;
   scope: ObjectId;
+  target: ObjectId | string;
   yesCount: Array<ObjectId>;
   banType: string;
   totalCount: Array<ObjectId>;
   startTime: Date;
   endTime: Date;
-}
-
-export enum VoteType {
-  BAN = "BAN",
-  CENSOR = "CENSOR",
-  UNCENSOR = "UNCENSOR",
-  DELETE = "DELETE",
 }
 
 export default class VoteConcept {
@@ -33,10 +28,20 @@ export default class VoteConcept {
    * @param endTime the end time
    * @param banType the type of ban
    */
-  async createVote(scope: ObjectId, title: string, reason: string, totalCount: Array<ObjectId>, startTime: Date = new Date(), endTime: Date, voteType: VoteType) {
-    const banType = voteType.valueOf();
+  async createVote(
+    initiator: ObjectId,
+    scope: ObjectId,
+    title: string,
+    reason: string,
+    totalCount: Array<ObjectId>,
+    startTime: Date = new Date(),
+    endTime: Date,
+    banType: string,
+    target: ObjectId | string,
+  ) {
+    await this.checkVoteType(banType);
     const yesCount = new Array<ObjectId>();
-    const _id = this.votes.createOne({ title, reason, scope, yesCount, banType, totalCount, startTime, endTime });
+    const _id = await this.votes.createOne({ initiator, title, reason, scope, target, yesCount, banType, totalCount, startTime, endTime });
 
     return { msg: "Successfully created a vote", vote: await this.votes.readOne({ _id }) };
   }
@@ -47,10 +52,16 @@ export default class VoteConcept {
    * @param user the user who voted
    */
   async voteYes(_id: ObjectId, user: ObjectId) {
+    console.log("I am here");
     await this.voteExists(_id);
+    console.log("I am here");
     await this.userInVote(_id, user);
+    console.log("I am here");
     const vote = await this.votes.readOne({ _id });
+    console.log("I am here");
+    console.log(vote);
     if (vote) {
+      console.log("I ma here");
       vote.yesCount.push(user);
       await this.votes.updateOne({ _id }, vote);
       return { msg: "Successfully voted yes", yesCount: vote.yesCount };
@@ -93,14 +104,12 @@ export default class VoteConcept {
         await this.votes.deleteOne({ _id });
         return { status: "Approved", vote: vote };
       }
-
-      return { status: "Pending", vote: vote };
     }
+    return { status: "Pending", vote: vote };
   }
 
   private async voteExists(_id: ObjectId) {
-    const maybeVote = this.votes.readOne({ _id });
-
+    const maybeVote = await this.votes.readOne({ _id });
     if (!maybeVote) {
       throw new BadValuesError("The vote does not exist");
     }
@@ -109,8 +118,15 @@ export default class VoteConcept {
   private async userInVote(_id: ObjectId, user: ObjectId) {
     await this.voteExists(_id);
     const vote = await this.votes.readOne({ _id });
-    if (vote && !vote.totalCount.includes(user)) {
+    if (vote && !vote.totalCount.some((elt) => elt.equals(user))) {
       throw new NotFoundError(`Can't find user with id ${user}`);
+    }
+  }
+
+  private async checkVoteType(vote: string) {
+    const voteTypes = ["ban", "censor", "uncensor", "delete"];
+    if (!voteTypes.includes(vote.toLowerCase())) {
+      throw new BadValuesError(`The vote ${vote} does not exist`);
     }
   }
 }

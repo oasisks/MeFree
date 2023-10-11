@@ -7,7 +7,6 @@ export interface DiscussionTopicDoc extends BaseDoc {
   posts: Array<ObjectId>;
   archived: boolean;
   creator: ObjectId;
-  censoredWordList: ObjectId;
   category: string;
 }
 
@@ -24,9 +23,9 @@ export default class DiscussionTopicConcept {
    * @param category the category this topic is in (note that category is unique)
    * @returns success message and the topic
    */
-  async createTopic(title: string, posts: Array<ObjectId>, archived: boolean = false, creator: ObjectId, censoredWordList: ObjectId, category: string) {
-    const _id = await this.topics.createOne({ title, posts, archived, creator, censoredWordList, category });
-    return { msg: "Successfully created a discussion topic", topic: this.topics.readOne({ _id }) };
+  async createTopic(title: string, posts: Array<ObjectId>, archived: boolean = false, creator: ObjectId, category: string) {
+    const _id = await this.topics.createOne({ title, posts, archived, creator, category });
+    return { msg: "Successfully created a discussion topic", topic: await this.topics.readOne({ _id }) };
   }
 
   /**
@@ -42,6 +41,11 @@ export default class DiscussionTopicConcept {
       await this.topics.updateOne({ _id }, topic);
       return { msg: "Successfully added a post" };
     }
+  }
+
+  async getTopicByCategory(category: string) {
+    const categories = await this.topics.readMany({ category });
+    return categories;
   }
 
   async changeArchive(_id: ObjectId, archived: boolean) {
@@ -74,7 +78,11 @@ export default class DiscussionTopicConcept {
     return await this.topics.readOne({ _id });
   }
 
-  private async topicExist(_id: ObjectId) {
+  async getAllTopics() {
+    return await this.topics.readMany({});
+  }
+
+  async topicExist(_id: ObjectId) {
     const maybeTopic = await this.topics.readOne({ _id });
     if (!maybeTopic) {
       throw new NotFoundError("Can't find the topic with this id");

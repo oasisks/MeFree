@@ -2,7 +2,7 @@ import { ObjectId } from "mongodb";
 
 import { Router, getExpressRouter } from "./framework/router";
 
-import { CensoredWordList, Friend, Group, Point, Post, Profile, User, WebSession } from "./app";
+import { Category, CensoredWordList, DiscussionTopic, Friend, Group, Point, Post, Profile, User, Vote, WebSession } from "./app";
 import { PostDoc, PostOptions } from "./concepts/post";
 import { ProfileDoc } from "./concepts/profile";
 import { UserDoc } from "./concepts/user";
@@ -33,7 +33,6 @@ class Routes {
     if (user) {
       const pointDoc = (await Point.initializePoints(user._id)).point;
       await Profile.initializeProfile(user._id, name, sex, dob, pointDoc!._id);
-      await Point.deletePoints(user._id);
     }
     return { msg: "Successfully created an user", user: user };
   }
@@ -49,6 +48,11 @@ class Routes {
     const user = WebSession.getUser(session);
     WebSession.end(session);
     await Profile.deleteProfile(user);
+    await Point.deletePoints(user);
+
+    // when the user gets deleted, the user needs to not exist in any group
+    const word_lists = (await Group.kickFromAllGroups(user)).wordList;
+    await Promise.all(word_lists.map((word) => CensoredWordList.delete(word)));
     return await User.delete(user);
   }
 
@@ -145,6 +149,7 @@ class Routes {
     return await Friend.rejectRequest(fromId, user);
   }
 
+  // begin testers
   @Router.post("/censoredwordlist")
   async createWordList() {
     return await CensoredWordList.create();
@@ -170,7 +175,6 @@ class Routes {
     return await CensoredWordList.getList(_id);
   }
 
-  // Just a tester
   @Router.post("/points")
   async initializePoints(session: WebSessionDoc, amount: number = 100, streak: number = 0) {
     const user = WebSession.getUser(session);
@@ -220,6 +224,7 @@ class Routes {
     }
     return await Point.addStreak(user);
   }
+  // end testers
 
   @Router.get("/profile")
   async getProfile(session: WebSessionDoc) {
@@ -263,17 +268,115 @@ class Routes {
     return await Group.invite(_id, inviter, inviteeId);
   }
 
-  @Router.delete("/groups/:_id/:resident")
-  async deleteUserFromGroup(session: WebSessionDoc, _id: ObjectId, resident: string) {
+  @Router.post("/groups/:_id/delete/:target")
+  async deleteUserFromGroupVote(session: WebSessionDoc, _id: ObjectId, target: ObjectId, reason: string) {
     const initiator = WebSession.getUser(session);
-    const residentId = (await User.getUserByUsername(resident))._id;
-    return await Group.deleteUser(_id, initiator, residentId);
+    const group = await Group.getGroup(_id);
+
+    // to vote someone out of the group, the initiator needs to pay a price
+    // of 100 points
+    await Point.subPoints(initiator, 100);
+    console.log("I am here");
+    // we then create the vote
+    const startTime = new Date();
+    const endTime = new Date();
+    endTime.setDate(endTime.getDate() + 1);
+    console.log(group);
+    console.log(_id);
+    const vote = await Vote.createVote(initiator, _id, `Ban user ${target}`, reason, group!.residents, startTime, endTime, "BAN", target);
+
+    return await Group.addVote(_id, vote.vote!._id);
   }
 
-  @Router.delete("/groups/:_id")
-  async deleteGroup(session: WebSessionDoc, _id: ObjectId) {
+  @Router.post("/groups/:_id")
+  async deleteGroupVote(session: WebSessionDoc, _id: ObjectId, reason: string) {
     const initiator = WebSession.getUser(session);
-    return await Group.deleteGroup(_id, initiator);
+    const group = await Group.getGroup(_id);
+
+    // to vote someone out of the group, the initiator needs to pay a price
+    // of 100 points
+    await Point.subPoints(initiator, 100);
+
+    // we then create the vote
+    const startTime = new Date();
+    const endTime = new Date();
+    endTime.setDate(endTime.getDate() + 1);
+    const vote = await Vote.createVote(initiator, _id, `Delete group ${_id}`, reason, group!.residents, startTime, endTime, "DELETE", _id);
+
+    return await Group.addVote(_id, vote.vote!._id);
+  }
+
+  @Router.post("/groups/:_id/censoredwords")
+  async addCensorWord(session: WebSessionDoc, _id: ObjectId, reason: string, word: string) {
+    const initiator = WebSession.getUser(session);
+    const group = await Group.getGroup(_id);
+
+    // to vote someone out of the group, the initiator needs to pay a price
+    // of 100 points
+    await Point.subPoints(initiator, 100);
+
+    // we then create the vote
+    const startTime = new Date();
+    const endTime = new Date();
+    endTime.setDate(endTime.getDate() + 1);
+    const vote = await Vote.createVote(initiator, _id, `Censor word: ${word}`, reason, group!.residents, startTime, endTime, "CENSOR", word);
+
+    return await Group.addVote(_id, vote.vote!._id);
+  }
+
+  @Router.post("/groups/:_id/uncensoredwords")
+  async deleteCensorWord(session: WebSessionDoc, _id: ObjectId, reason: string, word: string) {
+    const initiator = WebSession.getUser(session);
+    const group = await Group.getGroup(_id);
+    console.log(_id);
+
+    // to vote someone out of the group, the initiator needs to pay a price
+    // of 100 points
+    await Point.subPoints(initiator, 100);
+
+    // we then create the vote
+    const startTime = new Date();
+    const endTime = new Date();
+    endTime.setDate(endTime.getDate() + 1);
+    const vote = await Vote.createVote(initiator, _id, `Uncensor word: ${word}`, reason, group!.residents, startTime, endTime, "UNCENSOR", word);
+
+    return await Group.addVote(_id, vote.vote!._id);
+  }
+
+  // this one right here checks for all the votes within a group
+  // we don't care if the user is logged in or not
+  // once it finds things that are approved it will then perform
+  // the action
+  @Router.get("/groups/:_id/votes")
+  async checkForVotes(_id: ObjectId) {
+    const group = await Group.getGroup(_id);
+    const votes = group!.votes;
+
+    const results = await Promise.all(votes.map((vote) => Vote.checkVote(vote)));
+    const statuses = new Array<string>();
+    results.forEach(async (result) => {
+      const status = result.status;
+      const vote = result.vote;
+      statuses.push(status);
+      if (status === "Approved" && vote) {
+        // this is where we want to perform the actions
+        const target = vote.target;
+        const banType = vote.banType.toLowerCase();
+        const initiator = vote.initiator;
+        const censoredWord = group!.censoredWordList;
+
+        if (banType === "ban" && typeof target !== "string") {
+          await Group.deleteUser(_id, initiator, target);
+        } else if (banType === "censor" && typeof target === "string") {
+          await CensoredWordList.addWord(censoredWord, target);
+        } else if (banType === "uncensor" && typeof target === "string") {
+          await CensoredWordList.deleteWord(censoredWord, target);
+        } else {
+          return await Group.deleteGroup(_id, initiator);
+        }
+      }
+    });
+    return { msg: "Finished looking at all the votes", status: statuses };
   }
 
   @Router.post("/groups/:_id/:newOwner")
@@ -283,10 +386,56 @@ class Routes {
     return await Group.giveOwnerShip(_id, initiator, newOwnerId);
   }
 
+  @Router.patch("/groups/:_id/:post")
+  async addPost(_id: ObjectId, post: ObjectId) {
+    return await Group.addPosts(_id, post);
+  }
+
   @Router.post("/groups/:_id")
-  async changePrivacy(session: WebSessionDoc, _id: ObjectId, privacy: boolean) {
+  async changePrivacy(session: WebSessionDoc, _id: ObjectId, privacy: string) {
     const owner = WebSession.getUser(session);
-    return await Group.changePrivacy(_id, owner, privacy);
+    const _privacy = privacy === "true" ? true : false;
+    return await Group.changePrivacy(_id, owner, _privacy);
+  }
+
+  @Router.post("/discussions")
+  async createTopic(session: WebSessionDoc, title: string, category: string) {
+    const user = WebSession.getUser(session);
+    const posts = new Array<ObjectId>();
+    return await DiscussionTopic.createTopic(title, posts, false, user, category);
+  }
+
+  @Router.patch("/discussions/:_id/posts/:post")
+  async addPosts(session: WebSessionDoc, _id: ObjectId, post: ObjectId) {
+    await WebSession.isLoggedIn(session);
+    return await DiscussionTopic.add(_id, post);
+  }
+
+  @Router.patch("/discussions/:_id/archive/:status")
+  async changeArchive(session: WebSessionDoc, _id: ObjectId, status: string) {
+    await WebSession.isLoggedIn(session);
+    const s = status === "true";
+    return await DiscussionTopic.changeArchive(_id, s);
+  }
+
+  @Router.get("/spotlights")
+  async getSpotLights(session: WebSessionDoc) {
+    await WebSession.isLoggedIn(session);
+    const categories = await Category.getAllCategories("discussion");
+    return await DiscussionTopic.getSpotLights(categories);
+  }
+
+  @Router.get("/discussions")
+  async getAllTopics(session: WebSessionDoc) {
+    await WebSession.isLoggedIn(session);
+    return await DiscussionTopic.getAllTopics();
+  }
+
+  @Router.patch("/votes/:_id")
+  async voteYes(session: WebSessionDoc, _id: ObjectId) {
+    const user = WebSession.getUser(session);
+    console.log(_id, user);
+    return await Vote.voteYes(_id, user);
   }
 }
 
