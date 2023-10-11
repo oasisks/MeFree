@@ -4,6 +4,7 @@ import { Router, getExpressRouter } from "./framework/router";
 
 import { Category, CensoredWordList, Component, DiscussionTopic, Friend, Group, Point, Post, Profile, User, Vote, WebSession } from "./app";
 import { ComponentDocs } from "./concepts/component";
+import { BadValuesError } from "./concepts/errors";
 import { PostDoc, PostOptions } from "./concepts/post";
 import { ProfileDoc } from "./concepts/profile";
 import { UserDoc } from "./concepts/user";
@@ -191,6 +192,10 @@ class Routes {
   @Router.patch("/point/:amount")
   async updatePoints(session: WebSessionDoc, amount: string) {
     const user = WebSession.getUser(session);
+    // if this is null
+    if (!amount) {
+      throw new BadValuesError("Amount is not valid");
+    }
     const amount_num = parseInt(amount);
     if (amount_num >= 0) {
       return await Point.addPoints(user, amount_num);
@@ -202,6 +207,9 @@ class Routes {
   async sendPoints(session: WebSessionDoc, to: string, amount: string) {
     const user = WebSession.getUser(session);
     const toId = (await User.getUserByUsername(to))._id;
+    if (!amount) {
+      throw new BadValuesError("Amount is not valid");
+    }
     const amount_num = parseInt(amount);
     // console.log(user, toId, amount_num);
     return await Point.sendPoints(user, toId, amount_num);
@@ -240,13 +248,16 @@ class Routes {
   }
 
   @Router.post("/groups")
-  async createGroup(session: WebSessionDoc, status: boolean) {
+  async createGroup(session: WebSessionDoc, status: boolean = false) {
     const user = WebSession.getUser(session);
     const posts = new Array<ObjectId>();
     const residents = new Array<ObjectId>();
     const censoredWordList = await CensoredWordList.create();
 
     residents.push(user);
+    if (typeof status !== "boolean") {
+      return await Group.createGroup(user, residents, false, censoredWordList.list!._id, posts);
+    }
 
     return await Group.createGroup(user, residents, status, censoredWordList.list!._id, posts);
   }
